@@ -1,0 +1,7 @@
+/* Generic small helpers for settings & layouts */
+.settings{
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap
+}
+.dismissable{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
+[data-toggle-class]{cursor:pointer}
