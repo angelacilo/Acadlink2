@@ -39,5 +39,22 @@
 .btn-light{ background:#3F2478; border-color:#3F2478; color:#fff }
 .btn-danger{ background:#3F2478; border-color:#3F2478; color:#fff }
 
-/* Toast notification */
+/* Icon button (edit/archive) */
+.icon-btn{width:36px;height:36px;border-radius:10px;background:#fff;border:1px solid #e5e7eb;display:inline-grid;place-items:center;color:#111827;padding:0;cursor:pointer}
+.icon-btn:hover{background:#f9fafb}
+.icon-btn svg{width:18px;height:18px}
+
+/* Search input group */
+.input-group{display:flex;align-items:center;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+.input-group .input-ico{padding:8px 10px;color:#6b7280}
+.input-group .form-control{border:0;background:transparent}
+
+/* Custom select with arrow */
+.form-select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+
+/* Toast: bottom-right container */
+.toast-container{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:60;align-items:flex-end}
+.toast-item{background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);opacity:.98}
+
+/* Legacy toast */
 .toast{ position:fixed; right:16px; bottom:16px; background:#111827; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.15); z-index:60; opacity:.98 }

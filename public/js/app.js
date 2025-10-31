@@ -58310,7 +58310,8 @@ var _require = __webpack_require__(/*! ./utils */ "./resources/js/modules/utils.
   qsa = _require.qsa,
   on = _require.on,
   delegate = _require.delegate,
-  buildQuery = _require.buildQuery;
+  buildQuery = _require.buildQuery,
+  toast = _require.toast;
 function init() {
   var root = qs('[data-module="reports"]');
   if (!root) return;
@@ -58329,7 +58330,7 @@ function init() {
     });
   }
   qsa('form[data-filter-form]', root).forEach(function (form) {
-    qsa('select,input[type="search"]', form).forEach(function (el) {
+    qsa('select', form).forEach(function (el) {
       on(el, 'change', function () {
         return form.requestSubmit();
       });
@@ -58343,7 +58344,49 @@ function init() {
     var query = buildQuery(Object.assign({
       format: 'csv'
     }, params));
+    // Pre-check: if the nearest table has no rows, show warning and cancel
+    var card = btn.closest('.report-card');
+    var table = card ? qs('table', card) : null;
+    var hasRows = table ? qsa('tbody tr', table).some(function (tr) {
+      return tr.querySelector('td') && tr.querySelectorAll('td').length > 1;
+    }) : false;
+    if (!hasRows) {
+      toast.warning('No data available for export');
+      return;
+    }
+    toast.info('Preparing CSV...');
+    setTimeout(function () {
+      return toast.success('CSV exported successfully');
+    }, 1200);
     window.location.href = url + (url.includes('?') ? '&' : '?') + query;
+  });
+
+  // Client-side PDF export via print-to-PDF of the visible table
+  delegate(root, '[data-action="download-pdf"]', 'click', function (e) {
+    var btn = e.delegateTarget;
+    var card = btn.closest('.report-card');
+    var table = card ? qs('table', card) : null;
+    if (!table) {
+      toast.warning('No data to export');
+      return;
+    }
+    var title = btn.getAttribute('data-title') || 'Report';
+    var win = window.open('', '_blank');
+    if (!win) {
+      toast.error('Popup blocked. Allow popups to export PDF.');
+      return;
+    }
+    var styles = "\n      <style>\n        body{font-family:Inter,Arial,sans-serif;margin:24px}\n        h1{font-size:18px;margin:0 0 12px}\n        table{width:100%;border-collapse:collapse}\n        th,td{padding:8px 10px;border:1px solid #e5e7eb;text-align:left}\n        thead th{background:#f3f4f6}\n      </style>";
+    win.document.write("<html><head><title>".concat(title, "</title>").concat(styles, "</head><body>"));
+    win.document.write("<h1>".concat(title, "</h1>"));
+    win.document.write(table.outerHTML);
+    win.document.write('</body></html>');
+    win.document.close();
+    win.focus();
+    setTimeout(function () {
+      win.print();
+      win.close();
+    }, 200);
   });
 }
 document.addEventListener('DOMContentLoaded', init);
@@ -58366,10 +58409,25 @@ var _require = __webpack_require__(/*! ./utils */ "./resources/js/modules/utils.
   qs = _require.qs,
   qsa = _require.qsa,
   on = _require.on,
-  delegate = _require.delegate;
+  delegate = _require.delegate,
+  ensureToastContainer = _require.ensureToastContainer,
+  toast = _require.toast;
 function init() {
   var root = document.body;
   if (!root) return;
+
+  // Ensure toast container exists for all pages
+  ensureToastContainer();
+
+  // Auto display toasts via data attributes if present
+  qsa('[data-toast]').forEach(function (el) {
+    var type = el.getAttribute('data-toast') || 'info';
+    var msg = el.getAttribute('data-message') || el.textContent || '';
+    if (msg) {
+      (toast[type] || toast.info)(msg);
+      el.remove();
+    }
+  });
 
   // Generic toggle helper
   delegate(root, '[data-toggle-class]', 'click', function (e) {
@@ -58407,6 +58465,12 @@ function init() {
     var m = e.delegateTarget.closest('[data-modal]');
     if (m) m.classList.remove('is-open');
   });
+
+  // Global confirm handler
+  delegate(root, 'form[data-confirm]', 'submit', function (e) {
+    var msg = e.delegateTarget.getAttribute('data-confirm') || 'Are you sure?';
+    if (!confirm(msg)) e.preventDefault();
+  });
 }
 document.addEventListener('DOMContentLoaded', init);
 module.exports = {
@@ -58428,57 +58492,216 @@ var _require = __webpack_require__(/*! ./utils */ "./resources/js/modules/utils.
   qs = _require.qs,
   qsa = _require.qsa,
   on = _require.on,
-  delegate = _require.delegate,
-  buildQuery = _require.buildQuery;
+  delegate = _require.delegate;
 function init() {
   var root = qs('[data-module="students"]');
   if (!root) return;
-  var form = qs('form[data-filter-form]', root);
-  if (form) {
-    qsa('input[type="search"], input[type="text"], select', form).forEach(function (el) {
+
+  // Filters autosubmit (match faculty)
+  var filterForm = qs('form[data-filter-form]', root);
+  if (filterForm) {
+    var rebuildCourseOptions = function rebuildCourseOptions(deptId) {
+      if (!courseSelect || originalCourseOptions.length === 0) return;
+      var prev = courseSelect.value;
+      var first = originalCourseOptions[0].cloneNode(true);
+      first.textContent = 'All Courses';
+      courseSelect.innerHTML = '';
+      courseSelect.appendChild(first);
+      originalCourseOptions.slice(1).forEach(function (opt) {
+        var od = opt.getAttribute('data-dept');
+        if (!deptId || od && od === String(deptId)) {
+          courseSelect.appendChild(opt.cloneNode(true));
+        }
+      });
+      var stillExists = Array.from(courseSelect.options).some(function (o) {
+        return o.value === prev;
+      });
+      courseSelect.value = stillExists ? prev : '';
+      courseSelect.disabled = false;
+    };
+    // Auto-submit for text inputs
+    qsa('input[type="search"], input[type="text"]', filterForm).forEach(function (el) {
       on(el, 'change', function () {
-        return form.requestSubmit();
+        return filterForm.requestSubmit();
       });
       on(el, 'keyup', function (e) {
-        if (e.key === 'Enter') form.requestSubmit();
+        if (e.key === 'Enter') filterForm.requestSubmit();
       });
     });
+    // Auto-submit for selects, except department when a course select is present
+    var depSelect = qs('select[name="department_id"]', filterForm);
+    var courseSelect = qs('select[name="course_id"]', filterForm);
+    qsa('select', filterForm).forEach(function (el) {
+      if (el === depSelect && courseSelect) return; // wait for course selection
+      on(el, 'change', function () {
+        return filterForm.requestSubmit();
+      });
+    });
+    var originalCourseOptions = courseSelect ? Array.from(courseSelect.options).map(function (o) {
+      return o.cloneNode(true);
+    }) : [];
+    if (depSelect && courseSelect) {
+      // Initial build (handles when page loads with department preselected)
+      rebuildCourseOptions(depSelect.value);
+      on(depSelect, 'change', function () {
+        rebuildCourseOptions(depSelect.value);
+        // Do not auto-submit on department change; user will pick a course next
+      });
+      // Auto-submit when course changes
+      on(courseSelect, 'change', function () {
+        return filterForm.requestSubmit();
+      });
+    }
   }
+
+  // Add Student modal dependent dropdown (if modal exists)
+  var addModal = qs('[data-modal="stu-add"]');
+  if (addModal) {
+    var rebuild = function rebuild(deptId) {
+      if (!courseSel || original.length === 0) return;
+      var first = original[0].cloneNode(true);
+      first.textContent = deptId ? 'Select course' : 'Select department first';
+      courseSel.innerHTML = '';
+      courseSel.appendChild(first);
+      original.slice(1).forEach(function (opt) {
+        var od = opt.getAttribute('data-dept');
+        if (!deptId || od && od === String(deptId)) courseSel.appendChild(opt.cloneNode(true));
+      });
+      courseSel.value = '';
+      courseSel.disabled = !deptId;
+    };
+    var depSel = qs('select[name="department_id"]', addModal);
+    var courseSel = qs('select[name="course_id"]', addModal);
+    var original = courseSel ? Array.from(courseSel.options).map(function (o) {
+      return o.cloneNode(true);
+    }) : [];
+    if (depSel && courseSel) {
+      rebuild(depSel.value);
+      on(depSel, 'change', function () {
+        return rebuild(depSel.value);
+      });
+    }
+  }
+
+  // Edit Student modal dependent dropdown (if modal exists)
+  var editModal = qs('[data-modal="stu-edit"]');
+  if (editModal) {
+    var rebuildEdit = function rebuildEdit(deptId, preserveVal) {
+      if (!courseSelE || originalE.length === 0) return;
+      var first = originalE[0].cloneNode(true);
+      first.textContent = deptId ? 'Select course' : 'Select department first';
+      courseSelE.innerHTML = '';
+      courseSelE.appendChild(first);
+      originalE.slice(1).forEach(function (opt) {
+        var od = opt.getAttribute('data-dept');
+        if (!deptId || od && od === String(deptId)) courseSelE.appendChild(opt.cloneNode(true));
+      });
+      if (preserveVal) {
+        var still = Array.from(courseSelE.options).some(function (o) {
+          return o.value === String(preserveVal);
+        });
+        courseSelE.value = still ? String(preserveVal) : '';
+      } else {
+        courseSelE.value = '';
+      }
+      courseSelE.disabled = !deptId;
+    }; // expose for use in populate handler
+    var depSelE = qs('select[name="department_id"]', editModal);
+    var courseSelE = qs('select[name="course_id"]', editModal);
+    var originalE = courseSelE ? Array.from(courseSelE.options).map(function (o) {
+      return o.cloneNode(true);
+    }) : [];
+    editModal._rebuildCourses = rebuildEdit;
+    if (depSelE && courseSelE) {
+      rebuildEdit(depSelE.value, courseSelE.value);
+      on(depSelE, 'change', function () {
+        return rebuildEdit(depSelE.value);
+      });
+    }
+  }
+
+  // Populate Edit Student modal and open
+  var editForm = qs('#form-edit-student');
+  delegate(root, '[data-action="edit-student"]', 'click', function (e) {
+    var btn = e.delegateTarget;
+    if (!editForm) return;
+    var id = btn.getAttribute('data-id');
+    editForm.action = "/students/".concat(id);
+    qsa('input, select, textarea', editForm).forEach(function (el) {
+      var name = el.name;
+      if (!name) return;
+      var val = btn.getAttribute("data-".concat(name));
+      if (val !== null) {
+        if (el.type === 'date' && val && /\d{4}-\d{2}-\d{2}/.test(val)) el.value = val;else el.value = val;
+      }
+    });
+    // Rebuild courses for selected department and preserve selected course
+    var depSelE = qs('select[name="department_id"]', editForm);
+    var courseVal = btn.getAttribute('data-course_id');
+    if (editModal && typeof editModal._rebuildCourses === 'function') {
+      editModal._rebuildCourses(depSelE ? depSelE.value : '', courseVal);
+    }
+    var modal = qs('[data-modal="stu-edit"]');
+    if (modal) modal.classList.add('is-open');
+  });
   var table = qs('table', root);
   if (table) {
-    var toggleBulk = function toggleBulk() {
-      if (!bulkBar) return;
+    var updateHeader = function updateHeader() {
+      if (!archiveBtn) return;
       var any = checks().some(function (c) {
         return c.checked;
       });
-      bulkBar.classList.toggle('is-visible', any);
+      archiveBtn.disabled = !any;
     };
+    var updateRowStyles = function updateRowStyles() {
+      qsa('tbody tr', table).forEach(function (tr) {
+        var cb = qs('input[type="checkbox"][name="ids[]"]', tr);
+        tr.classList.toggle('is-selected', !!(cb && cb.checked));
+      });
+    }; // Row click toggles selection (ignore if clicking on buttons/links/forms)
     var checkAll = qs('[data-check="all"]', root);
     var checks = function checks() {
       return qsa('tbody input[type="checkbox"][name="ids[]"]', table);
     };
-    var bulkBar = qs('[data-bulk="actions"]', root);
-    on(checkAll, 'change', function () {
+    var archiveBtn = qs('[data-action="bulk-archive"]', root);
+    if (checkAll) on(checkAll, 'change', function () {
       checks().forEach(function (c) {
         return c.checked = checkAll.checked;
       });
-      toggleBulk();
+      updateHeader();
+      updateRowStyles();
     });
-    delegate(table, 'tbody input[type="checkbox"][name="ids[]"]', 'change', toggleBulk);
+    delegate(table, 'tbody input[type="checkbox"][name="ids[]"]', 'change', function () {
+      updateHeader();
+      updateRowStyles();
+    });
+    delegate(table, 'tbody tr', 'click', function (e) {
+      var target = e.target;
+      if (target.closest('button, a, form, input, select, label, svg, path')) return;
+      var tr = e.delegateTarget;
+      var cb = qs('input[type="checkbox"][name="ids[]"]', tr);
+      if (cb) {
+        cb.checked = !cb.checked;
+        updateHeader();
+        updateRowStyles();
+      }
+    });
+
+    // Header archive action
+    if (archiveBtn) on(archiveBtn, 'click', function (e) {
+      e.preventDefault();
+      var any = checks().some(function (c) {
+        return c.checked;
+      });
+      if (!any) return;
+      var form = qs('#stu-bulk-archive-form');
+      if (form) form.requestSubmit();
+    });
+
+    // Initial state
+    updateHeader();
+    updateRowStyles();
   }
-  var search = qs('[data-action="search-clear"]', root);
-  on(search, 'click', function () {
-    var q = qs('input[name="q"]', form);
-    if (q) q.value = '';
-    if (form) form.requestSubmit();
-  });
-  var sorter = qs('[data-sorter]', root);
-  on(sorter, 'change', function () {
-    var params = Object.fromEntries(new FormData(form));
-    params.sort = sorter.value;
-    var query = buildQuery(params);
-    window.location.search = query;
-  });
 }
 document.addEventListener('DOMContentLoaded', init);
 module.exports = {
@@ -58517,6 +58740,18 @@ function init() {
       window.location.href = url.toString();
     });
   }
+
+  // Autosubmit filter forms (search / archived) inside panes
+  qsa('form[data-filter-form]', root).forEach(function (form) {
+    qsa('input[type="search"], input[type="text"], select', form).forEach(function (el) {
+      on(el, 'change', function () {
+        return form.requestSubmit();
+      });
+      on(el, 'keyup', function (e) {
+        if (e.key === 'Enter') form.requestSubmit();
+      });
+    });
+  });
 
   // Populate edit Course
   var editCourseForm = qs('#form-edit-course');
@@ -58621,6 +58856,57 @@ function buildQuery(params) {
   });
   return usp.toString();
 }
+
+// Toast utilities (bottom-left). API compatible shim for `sonner` style usage.
+function ensureToastContainer() {
+  var c = document.querySelector('.toast-container');
+  if (!c) {
+    c = document.createElement('div');
+    c.className = 'toast-container';
+    document.body.appendChild(c);
+  }
+  return c;
+}
+function addToast(message) {
+  var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'info';
+  var c = ensureToastContainer();
+  var el = document.createElement('div');
+  el.className = 'toast-item';
+  var colors = {
+    success: '#065f46',
+    error: '#991b1b',
+    info: '#0f172a',
+    warning: '#92400e'
+  };
+  el.style.borderLeft = '4px solid ' + (colors[type] || colors.info);
+  el.textContent = message;
+  c.appendChild(el);
+  setTimeout(function () {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(6px)';
+    el.style.transition = 'all .2s ease';
+  }, 2800);
+  setTimeout(function () {
+    el.remove();
+  }, 3200);
+}
+var toast = {
+  success: function success(msg) {
+    return addToast(msg, 'success');
+  },
+  error: function error(msg) {
+    return addToast(msg, 'error');
+  },
+  info: function info(msg) {
+    return addToast(msg, 'info');
+  },
+  warning: function warning(msg) {
+    return addToast(msg, 'warning');
+  }
+};
+if (typeof window !== 'undefined') {
+  window.toast = toast;
+}
 module.exports = {
   qs: qs,
   qsa: qsa,
@@ -58628,7 +58914,9 @@ module.exports = {
   delegate: delegate,
   normalize: normalize,
   toggle: toggle,
-  buildQuery: buildQuery
+  buildQuery: buildQuery,
+  ensureToastContainer: ensureToastContainer,
+  toast: toast
 };
 
 /***/ }),

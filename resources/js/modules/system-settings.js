@@ -19,6 +19,14 @@ function init() {
     });
   }
 
+  // Autosubmit filter forms (search / archived) inside panes
+  qsa('form[data-filter-form]', root).forEach((form) => {
+    qsa('input[type="search"], input[type="text"], select', form).forEach((el) => {
+      on(el, 'change', () => form.requestSubmit());
+      on(el, 'keyup', (e) => { if (e.key === 'Enter') form.requestSubmit(); });
+    });
+  });
+
   // Populate edit Course
   const editCourseForm = qs('#form-edit-course');
   delegate(root, '[data-action="edit-course"]', 'click', (e) => {

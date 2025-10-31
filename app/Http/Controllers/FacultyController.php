@@ -10,40 +10,61 @@ class FacultyController extends Controller
 {
     public function store(Request $request)
     {
-        $data = $this->validateData($request);
-        Faculty::create($data);
-        return Redirect::route('dashboard', ['view' => 'faculty'])
-            ->with('status', 'Faculty added successfully');
+        try {
+            $data = $this->validateData($request);
+            Faculty::create($data);
+            return Redirect::route('dashboard', ['view' => 'faculty'])
+                ->with('status', 'Faculty added successfully');
+        } catch (\Throwable $e) {
+            return Redirect::back()->with('error', 'Failed to save faculty');
+        }
     }
 
     public function update(Request $request, Faculty $faculty)
     {
-        $data = $this->validateData($request, $faculty->faculty_id);
-        $faculty->update($data);
-        return Redirect::route('dashboard', ['view' => 'faculty'])
-            ->with('status', 'Faculty updated successfully');
+        try {
+            $data = $this->validateData($request, $faculty->faculty_id);
+            $faculty->update($data);
+            return Redirect::route('dashboard', ['view' => 'faculty'])
+                ->with('status', 'Faculty updated successfully');
+        } catch (\Throwable $e) {
+            return Redirect::back()->with('error', 'Failed to save faculty');
+        }
     }
 
     public function destroy(Faculty $faculty)
     {
-        $faculty->delete();
-        return Redirect::back()->with('status', 'Faculty archived');
+        try {
+            $faculty->delete();
+            return Redirect::back()->with('status', 'Faculty archived successfully');
+        } catch (\Throwable $e) {
+            return Redirect::back()->with('error', 'Failed to archive faculty');
+        }
     }
 
     public function restore($id)
     {
-        $fac = Faculty::onlyTrashed()->findOrFail($id);
-        $fac->restore();
-        return Redirect::back()->with('status', 'Faculty restored');
+        try {
+            $fac = Faculty::onlyTrashed()->findOrFail($id);
+            $fac->restore();
+            return Redirect::back()->with('status', 'Faculty restored successfully');
+        } catch (\Throwable $e) {
+            return Redirect::back()->with('error', 'Failed to restore faculty');
+        }
     }
 
     public function bulkArchive(Request $request)
     {
         $ids = $request->input('ids', []);
-        if (!empty($ids)) {
-            Faculty::whereIn('faculty_id', $ids)->delete();
+        if (empty($ids)) {
+            return Redirect::back()->with('error', 'Please select faculty members to archive');
         }
-        return Redirect::back()->with('status', 'Selected faculty archived');
+        try {
+            $count = Faculty::whereIn('faculty_id', $ids)->delete();
+            return Redirect::back()->with('status', $count.' faculty member(s) archived successfully');
+        } catch (\Throwable $e) {
+            return Redirect::back()->with('error', 'Failed to archive some faculty members');
+        }
     }
 
     private function validateData(Request $request, $ignoreId = null)
@@ -69,3 +90,4 @@ class FacultyController extends Controller
         ]);
     }
 }
+

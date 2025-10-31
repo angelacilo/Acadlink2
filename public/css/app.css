@@ -12199,7 +12199,82 @@ textarea.form-control-lg {
   color: #fff;
 }
 
-/* Toast notification */
+/* Icon button (edit/archive) */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  display: inline-grid;
+  place-items: center;
+  color: #111827;
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: #f9fafb;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Search input group */
+.input-group {
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.input-group .input-ico {
+  padding: 8px 10px;
+  color: #6b7280;
+}
+
+.input-group .form-control {
+  border: 0;
+  background: transparent;
+}
+
+/* Custom select with arrow */
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+}
+
+/* Toast: bottom-right container */
+.toast-container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 60;
+  align-items: flex-end;
+}
+
+.toast-item {
+  background: #111827;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  opacity: 0.98;
+}
+
+/* Legacy toast */
 .toast {
   position: fixed;
   right: 16px;
@@ -12237,7 +12312,7 @@ textarea.form-control-lg {
   flex: 1;
   min-width: 0;
 }
-[data-module=students] .input-group-text {
+[data-module=students] .input-ico {
   padding: 8px 10px;
   background: transparent;
   border: 0;
@@ -12256,6 +12331,15 @@ textarea.form-control-lg {
 [data-module=students] .form-control, [data-module=students] .form-select {
   height: 38px;
 }
+[data-module=students] .bulk-actions {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+[data-module=students] .bulk-actions.is-visible {
+  display: flex;
+}
 [data-module=students] .table th, [data-module=students] .table td {
   vertical-align: middle;
 }
@@ -12264,6 +12348,9 @@ textarea.form-control-lg {
 }
 [data-module=students] .table tbody tr:hover {
   background: #f9fafb;
+}
+[data-module=students] .table tbody tr.is-selected {
+  background: #ede9fe;
 }
 @media (max-width: 900px) {
   [data-module=students] .filter-bar form {
@@ -12278,6 +12365,17 @@ textarea.form-control-lg {
   line-height: 1;
   background: #fff7ed;
   color: #9a3412;
+}
+[data-module=students] .input-group-text {
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  color: #6b7280;
+}
+[data-module=students] .table td .sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
 }
 
 [data-module=faculty] .page-head {
@@ -12304,7 +12402,7 @@ textarea.form-control-lg {
   flex: 1;
   min-width: 0;
 }
-[data-module=faculty] .input-group-text {
+[data-module=faculty] .input-ico {
   padding: 8px 10px;
   background: transparent;
   border: 0;
@@ -12349,6 +12447,12 @@ textarea.form-control-lg {
     flex-wrap: wrap;
   }
 }
+[data-module=faculty] .table td .sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+  line-height: 1.2;
+}
 
 [data-module=reports] .tabs {
   margin-bottom: 12px;
@@ -12356,14 +12460,24 @@ textarea.form-control-lg {
 [data-module=reports] .report-card {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 14px;
 }
 [data-module=reports] .report-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+}
+[data-module=reports] .report-head form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+[data-module=reports] .report-head .form-select {
+  min-width: 220px;
+  height: 38px;
 }
 [data-module=reports] .summary {
   margin-top: 8px;
@@ -12374,22 +12488,68 @@ textarea.form-control-lg {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #111827;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #0b0b16;
   color: #fff;
   border: 0;
   cursor: pointer;
+}
+@media (max-width: 900px) {
+  [data-module=reports] .report-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  [data-module=reports] .report-head form {
+    flex-wrap: wrap;
+  }
 }
 
 [data-module=system-settings] .section {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 14px;
 }
 [data-module=system-settings] .section + .section {
   margin-top: 12px;
+}
+[data-module=system-settings] .filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 10px;
+}
+[data-module=system-settings] .filter-bar form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+[data-module=system-settings] .input-group {
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 320px;
+}
+[data-module=system-settings] .input-ico {
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  color: #6b7280;
+}
+[data-module=system-settings] .input-group .form-control {
+  border: 0;
+  background: transparent;
+  height: 38px;
+}
+[data-module=system-settings] .form-select {
+  min-width: 200px;
+  height: 38px;
 }
 [data-module=system-settings] .table {
   width: 100%;
@@ -12398,6 +12558,7 @@ textarea.form-control-lg {
 [data-module=system-settings] .table th, [data-module=system-settings] .table td {
   padding: 10px 12px;
   border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
 }
 [data-module=system-settings] .actions {
   display: flex;
@@ -12405,6 +12566,14 @@ textarea.form-control-lg {
 }
 [data-module=system-settings] .modal .modal-card {
   max-width: 720px;
+}
+@media (max-width: 900px) {
+  [data-module=system-settings] .filter-bar form {
+    flex-wrap: wrap;
+  }
+  [data-module=system-settings] .input-group {
+    min-width: 260px;
+  }
 }
 
 [data-module=my-profile] .profile-card {
@@ -12450,6 +12619,109 @@ textarea.form-control-lg {
 }
 [data-toggle-class] {
   cursor: pointer;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(1200px 600px at -10% -10%, #ede9fe 0%, rgba(237, 233, 254, 0.5) 40%, rgba(237, 233, 254, 0.2) 60%, #ffffff 100%);
+}
+
+.auth-card {
+  width: 520px;
+  max-width: 92vw;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(2, 6, 23, 0.12);
+  border: 1px solid #ebe9f5;
+  padding: 22px;
+}
+
+.auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.auth-logo {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: #d9d6fe;
+  display: grid;
+  place-items: center;
+  color: #4c1d95;
+  font-weight: 700;
+}
+
+.auth-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.auth-sub {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+  margin: 8px 0 14px;
+}
+
+.auth-tabs a {
+  display: inline-block;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #334155;
+  text-decoration: none;
+}
+
+.auth-tabs a.is-active {
+  background: #111827;
+  color: #fff;
+}
+
+.auth-form .form-label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.auth-form .form-control {
+  height: 40px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.auth-form .form-control::-moz-placeholder {
+  color: #9ca3af;
+}
+
+.auth-form .form-control::placeholder {
+  color: #9ca3af;
+}
+
+.auth-actions {
+  margin-top: 12px;
+}
+
+.auth-actions .btn {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  background: #0b0b16;
+  color: #fff;
+  border: 0;
 }
 
 :root {

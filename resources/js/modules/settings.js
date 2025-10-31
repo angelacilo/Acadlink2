@@ -1,10 +1,21 @@
 'use strict';
 
-const { qs, qsa, on, delegate } = require('./utils');
+const { qs, qsa, on, delegate, ensureToastContainer, toast } = require('./utils');
 
 function init() {
   const root = document.body;
   if (!root) return;
+
+  // Ensure toast container exists for all pages
+  ensureToastContainer();
+
+  // Auto display toasts via data attributes if present
+  qsa('[data-toast]')
+    .forEach((el) => {
+      const type = el.getAttribute('data-toast') || 'info';
+      const msg = el.getAttribute('data-message') || el.textContent || '';
+      if (msg) { (toast[type] || toast.info)(msg); el.remove(); }
+    });
 
   // Generic toggle helper
   delegate(root, '[data-toggle-class]', 'click', (e) => {
@@ -42,8 +53,15 @@ function init() {
     const m = e.delegateTarget.closest('[data-modal]');
     if (m) m.classList.remove('is-open');
   });
+
+  // Global confirm handler
+  delegate(root, 'form[data-confirm]', 'submit', (e) => {
+    const msg = e.delegateTarget.getAttribute('data-confirm') || 'Are you sure?';
+    if (!confirm(msg)) e.preventDefault();
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
 
 module.exports = { init };
+

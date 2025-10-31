@@ -91,7 +91,6 @@
                     <div class="icon" aria-hidden="true"></div>
                 </div>
             </div>
-
             <div class="dash-grid">
                 <div class="card">
                     <div class="chart-title">Students per Course</div>
@@ -123,7 +122,7 @@
                         <form data-filter-form method="GET" action="{{ route('dashboard') }}">
                             <input type="hidden" name="view" value="faculty" />
                             <div class="input-group" style="min-width:320px">
-                                <span class="input-group-text">🔎</span>
+                                <span class="input-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
                                 <input type="search" name="q" value="{{ request('q') }}" placeholder="Search by name or email..." class="form-control" />
                             </div>
                             <select name="department_id" class="form-select">
@@ -152,7 +151,6 @@
                                     <th style="width:40px">@if(!$showArchived)<input type="checkbox" data-check="all" />@endif</th>
                                     <th>Faculty ID</th>
                                     <th>Name</th>
-                                    <th>Email</th>
                                     <th>Position</th>
                                     <th>Department</th>
                                     <th>Status</th>
@@ -168,8 +166,10 @@
                                             @endif
                                         </td>
                                         <td>{{ $f->faculty_id }}</td>
-                                        <td>{{ $f->first_name }} {{ $f->middle_name }} {{ $f->last_name }}</td>
-                                        <td>{{ $f->email_address }}</td>
+                                        <td>
+                                            <div>{{ $f->first_name }} {{ $f->middle_name }} {{ $f->last_name }}</div>
+                                            <div class="sub">{{ $f->email_address }}</div>
+                                        </td>
                                         <td>{{ $f->position ?? 'N/A' }}</td>
                                         <td>{{ optional($f->department)->department_name ?? 'N/A' }}</td>
                                         <td>
@@ -207,7 +207,7 @@
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="8">No faculty found</td></tr>
+                                    <tr><td colspan="7">No faculty found</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -310,7 +310,8 @@
                         <h1 class="page-title">Student Management</h1>
                         <p class="page-sub">Manage student information</p>
                     </div>
-                    <div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <button class="btn" data-action="bulk-archive" disabled>Archive Selected</button>
                         <button class="btn btn-dark" data-modal-open="stu-add">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                             Add Student
@@ -318,30 +319,39 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div style="font-weight:600">Student List</div>
-                    <div class="page-sub" style="margin:4px 0 10px">Search and filter student members</div>
+                <form id="stu-bulk-archive-form" method="POST" action="{{ route('students.bulk-archive') }}" style="display:none" data-confirm="Are you sure you want to archive selected students?">
+                    @csrf
+                </form>
+
+                <div class="card" style="margin-bottom:12px">
                     <div class="filter-bar">
                         <form data-filter-form method="GET" action="{{ route('dashboard') }}">
                             <input type="hidden" name="view" value="students" />
                             <div class="input-group" style="min-width:320px">
-                                <span class="input-group-text">🔎</span>
+                                <span class="input-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
                                 <input type="search" name="q" value="{{ request('q') }}" placeholder="Search by name or email..." class="form-control" />
                             </div>
-                            <select name="course_id" class="form-select">
-                                <option value="">All Courses</option>
-                                @foreach($courses as $c)
-                                    <option value="{{ $c->course_id }}" {{ request('course_id')==$c->course_id ? 'selected' : '' }}>{{ $c->course_name }}</option>
-                                @endforeach
-                            </select>
                             <select name="department_id" class="form-select">
                                 <option value="">All Departments</option>
                                 @foreach($departments as $d)
                                     <option value="{{ $d->department_id }}" {{ request('department_id')==$d->department_id ? 'selected' : '' }}>{{ $d->department_name }}</option>
                                 @endforeach
                             </select>
+                            <select name="course_id" class="form-select">
+                                <option value="">All Courses</option>
+                                @foreach($courses as $c)
+                                    <option value="{{ $c->course_id }}" data-dept="{{ $c->department_id }}" {{ request('course_id')==$c->course_id ? 'selected' : '' }}>{{ $c->course_name }}</option>
+                                @endforeach
+                            </select>
+                            <select name="archived" class="form-select">
+                                <option value="0" {{ request('archived','0')=='0' ? 'selected' : '' }}>Active</option>
+                                <option value="1" {{ request('archived')=='1' ? 'selected' : '' }}>Archived</option>
+                            </select>
                         </form>
                     </div>
+                </div>
+
+                <div class="card">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -349,17 +359,191 @@
                                     <th style="width:40px"><input type="checkbox" data-check="all" /></th>
                                     <th>Student ID</th>
                                     <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Course</th>
                                     <th>Department</th>
+                                    <th>Course</th>
+                                    <th>Year Level</th>
+                                    <th>Academic Year</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="8">No students found</td></tr>
+                                @forelse($students as $s)
+                                    <tr>
+                                        <td>
+                                            @if(!request('archived'))
+                                                <input type="checkbox" name="ids[]" value="{{ $s->student_id }}" form="stu-bulk-archive-form" />
+                                            @endif
+                                        </td>
+                                        <td>{{ $s->student_id }}</td>
+                                        <td>
+                                            <div>{{ $s->first_name }} {{ $s->middle_name }} {{ $s->last_name }}</div>
+                                            <div class="sub">{{ $s->email_address }}</div>
+                                        </td>
+                                        <td>{{ optional($s->department)->department_name ?? 'N/A' }}</td>
+                                        <td>{{ optional($s->course)->course_name ?? 'N/A' }}</td>
+                                        <td>{{ $s->year_level ?? 'N/A' }}</td>
+                                        <td>{{ optional($s->academicYear)->school_year ?? 'N/A' }}</td>
+                                        <td>
+                                            @php $status = strtolower($s->status ?? 'Active'); @endphp
+                                            <span class="badge {{ $status==='active'?'success':($status==='returnee'?'warn':'') }}">{{ $s->status ?? 'Active' }}</span>
+                                        </td>
+                                        <td>
+                                            @if(!request('archived'))
+                                                <button class="btn btn-light btn-sm" type="button" data-action="edit-student"
+                                                    data-id="{{ $s->student_id }}"
+                                                    data-first_name="{{ $s->first_name }}"
+                                                    data-middle_name="{{ $s->middle_name }}"
+                                                    data-last_name="{{ $s->last_name }}"
+                                                    data-suffix="{{ $s->suffix }}"
+                                                    data-date_of_birth="{{ optional($s->date_of_birth)->format('Y-m-d') }}"
+                                                    data-sex="{{ $s->sex }}"
+                                                    data-email_address="{{ $s->email_address }}"
+                                                    data-phone_number="{{ $s->phone_number }}"
+                                                    data-address="{{ $s->address }}"
+                                                    data-department_id="{{ $s->department_id }}"
+                                                    data-course_id="{{ $s->course_id }}"
+                                                    data-academic_year_id="{{ $s->academic_year_id }}"
+                                                    data-year_level="{{ $s->year_level }}"
+                                                    data-status="{{ $s->status }}">✏️</button>
+                                                <form action="{{ route('students.destroy', $s) }}" method="POST" style="display:inline-block" data-confirm="Archive this student?">
+                                                    @csrf @method('DELETE')
+                                                    <button class="btn btn-light btn-sm" type="submit">🗑️</button>
+                                                </form>
+                                            @else
+                                                <form action="{{ route('students.restore', $s->student_id) }}" method="POST" style="display:inline-block" data-confirm="Restore this student?">
+                                                    @csrf
+                                                    <button class="btn btn-light btn-sm" type="submit">↩️ Restore</button>
+                                                </form>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="9">No students found</td></tr>
+                                @endforelse
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Add Student Modal -->
+                <div class="modal" data-modal="stu-add">
+                    <div class="modal-card">
+                        <div class="modal-header"><strong>Add Student</strong><button class="btn btn-light btn-sm" data-modal-close>✖</button></div>
+                        <div class="modal-body">
+                            <form method="POST" action="{{ route('students.store') }}" id="form-add-student" class="form-grid">
+                                @csrf
+                                <input class="form-control" name="first_name" placeholder="First Name *" required />
+                                <input class="form-control" name="middle_name" placeholder="Middle Name" />
+                                <input class="form-control" name="last_name" placeholder="Last Name *" required />
+                                <input class="form-control" name="suffix" placeholder="Jr., Sr., III" />
+                                <input class="form-control" type="date" name="date_of_birth" placeholder="mm/dd/yyyy" />
+                                <select class="form-select" name="sex">
+                                    <option value="">Select sex</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                </select>
+                                <input class="form-control" type="email" name="email_address" placeholder="Email Address *" required />
+                                <input class="form-control" name="phone_number" placeholder="Phone Number" />
+                                <input class="form-control" name="address" placeholder="Address" />
+                                <select class="form-select" name="department_id" required>
+                                    <option value="">Select department</option>
+                                    @foreach($departments as $d)
+                                        <option value="{{ $d->department_id }}">{{ $d->department_name }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="course_id" required>
+                                    <option value="">Select course</option>
+                                    @foreach($courses as $c)
+                                        <option value="{{ $c->course_id }}" data-dept="{{ $c->department_id }}">{{ $c->course_name }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="academic_year_id" required>
+                                    <option value="">Select academic year</option>
+                                    @foreach($academicYears as $y)
+                                        <option value="{{ $y->academic_year_id }}">{{ $y->school_year }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="year_level" required>
+                                    <option value="">Select year level</option>
+                                    <option>1st Year</option>
+                                    <option>2nd Year</option>
+                                    <option>3rd Year</option>
+                                    <option>4th Year</option>
+                                    <option>5th Year</option>
+                                </select>
+                                <select class="form-select" name="status" required>
+                                    <option>Active</option>
+                                    <option>Returnee</option>
+                                    <option>Inactive</option>
+                                </select>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-light" data-modal-close>Cancel</button>
+                            <button class="btn btn-dark" form="form-add-student" type="submit">Add Student</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Student Modal -->
+                <div class="modal" data-modal="stu-edit">
+                    <div class="modal-card">
+                        <div class="modal-header"><strong>Edit Student</strong><button class="btn btn-light btn-sm" data-modal-close>✖</button></div>
+                        <div class="modal-body">
+                            <form method="POST" action="#" id="form-edit-student" class="form-grid">
+                                @csrf
+                                @method('PUT')
+                                <input class="form-control" name="first_name" placeholder="First Name *" required />
+                                <input class="form-control" name="middle_name" placeholder="Middle Name" />
+                                <input class="form-control" name="last_name" placeholder="Last Name *" required />
+                                <input class="form-control" name="suffix" placeholder="Jr., Sr., III" />
+                                <input class="form-control" type="date" name="date_of_birth" placeholder="mm/dd/yyyy" />
+                                <select class="form-select" name="sex">
+                                    <option value="">Select sex</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                </select>
+                                <input class="form-control" type="email" name="email_address" placeholder="Email Address *" required />
+                                <input class="form-control" name="phone_number" placeholder="Phone Number" />
+                                <input class="form-control" name="address" placeholder="Address" />
+                                <select class="form-select" name="department_id" required>
+                                    <option value="">Select department</option>
+                                    @foreach($departments as $d)
+                                        <option value="{{ $d->department_id }}">{{ $d->department_name }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="course_id" required>
+                                    <option value="">Select course</option>
+                                    @foreach($courses as $c)
+                                        <option value="{{ $c->course_id }}" data-dept="{{ $c->department_id }}">{{ $c->course_name }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="academic_year_id" required>
+                                    <option value="">Select academic year</option>
+                                    @foreach($academicYears as $y)
+                                        <option value="{{ $y->academic_year_id }}">{{ $y->school_year }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="year_level" required>
+                                    <option value="">Select year level</option>
+                                    <option>1st Year</option>
+                                    <option>2nd Year</option>
+                                    <option>3rd Year</option>
+                                    <option>4th Year</option>
+                                    <option>5th Year</option>
+                                </select>
+                                <select class="form-select" name="status" required>
+                                    <option>Active</option>
+                                    <option>Returnee</option>
+                                    <option>Inactive</option>
+                                </select>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-light" data-modal-close>Cancel</button>
+                            <button class="btn btn-dark" form="form-edit-student" type="submit">Update Student</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -368,30 +552,127 @@
             <p class="page-sub">Generate and download reports</p>
             <div data-module="reports" class="page">
                 <div class="tabs" data-tabs>
-                    <button data-tab="students" class="is-active">Student Reports</button>
-                    <button data-tab="faculty">Faculty Reports</button>
+                    <button data-tab="students" class="{{ $activeTab==='students' ? 'is-active' : '' }}">Student Reports</button>
+                    <button data-tab="faculty" class="{{ $activeTab==='faculty' ? 'is-active' : '' }}">Faculty Reports</button>
                 </div>
-                <div class="tab-pane is-active" data-pane="students">
+
+                <!-- Student Reports Pane -->
+                <div class="tab-pane {{ $activeTab==='students' ? 'is-active' : '' }}" data-pane="students">
                     <div class="card report-card">
                         <div class="report-head">
-                            <form data-filter-form class="settings">
-                                <select class="form-select"><option>All Courses</option></select>
-                                <select class="form-select"><option>All Academic Years</option></select>
+                            <form data-filter-form class="settings" method="GET" action="{{ route('dashboard') }}">
+                                <input type="hidden" name="view" value="reports" />
+                                <input type="hidden" name="tab" value="students" />
+                                <select class="form-select" name="course_id">
+                                    <option value="">All Courses</option>
+                                    @foreach($courses as $c)
+                                        <option value="{{ $c->course_id }}" {{ request('course_id')==$c->course_id ? 'selected' : '' }}>{{ $c->course_name }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="academic_year_id">
+                                    <option value="">All Academic Years</option>
+                                    @foreach($academicYears as $y)
+                                        <option value="{{ $y->academic_year_id }}" {{ request('academic_year_id')==$y->academic_year_id ? 'selected' : '' }}>{{ $y->school_year }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="archived">
+                                    <option value="0" {{ request('archived','0')=='0' ? 'selected' : '' }}>Active</option>
+                                    <option value="1" {{ request('archived')=='1' ? 'selected' : '' }}>Archived</option>
+                                </select>
                             </form>
-                            <button class="download" data-action="download-csv" data-url="#">Download CSV</button>
+                            <div style="display:flex;gap:8px">
+                                <button class="download" data-action="download-csv" data-url="{{ route('reports.students') }}">Download CSV</button>
+                                <button class="download" data-action="download-pdf" data-title="Student Report">Download PDF</button>
+                            </div>
                         </div>
-                        <div class="summary">Total students in report: 0</div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Course</th>
+                                        <th>Department</th>
+                                        <th>Year Level</th>
+                                        <th>Academic Year</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($reportStudents as $s)
+                                        <tr>
+                                            <td>{{ $s->student_id }}</td>
+                                            <td>{{ $s->first_name }} {{ $s->middle_name }} {{ $s->last_name }}</td>
+                                            <td>{{ $s->email_address }}</td>
+                                            <td>{{ optional($s->course)->course_name ?? 'N/A' }}</td>
+                                            <td>{{ optional($s->department)->department_name ?? 'N/A' }}</td>
+                                            <td>{{ $s->year_level ?? 'N/A' }}</td>
+                                            <td>{{ optional($s->academicYear)->school_year ?? 'N/A' }}</td>
+                                            <td>{{ $s->status ?? 'N/A' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="8">No results</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="summary">Total students in report: {{ $reportStudents->count() }}</div>
                     </div>
                 </div>
-                <div class="tab-pane" data-pane="faculty">
+
+                <!-- Faculty Reports Pane -->
+                <div class="tab-pane {{ $activeTab==='faculty' ? 'is-active' : '' }}" data-pane="faculty">
                     <div class="card report-card">
                         <div class="report-head">
-                            <form data-filter-form class="settings">
-                                <select class="form-select"><option>All Departments</option></select>
+                            <form data-filter-form class="settings" method="GET" action="{{ route('dashboard') }}">
+                                <input type="hidden" name="view" value="reports" />
+                                <input type="hidden" name="tab" value="faculty" />
+                                <select class="form-select" name="department_id">
+                                    <option value="">All Departments</option>
+                                    @foreach($departments as $d)
+                                        <option value="{{ $d->department_id }}" {{ request('department_id')==$d->department_id ? 'selected' : '' }}>{{ $d->department_name }}</option>
+                                    @endforeach
+                                </select>
+                                <select class="form-select" name="archived">
+                                    <option value="0" {{ request('archived','0')=='0' ? 'selected' : '' }}>Active</option>
+                                    <option value="1" {{ request('archived')=='1' ? 'selected' : '' }}>Archived</option>
+                                </select>
                             </form>
-                            <button class="download" data-action="download-csv" data-url="#">Download CSV</button>
+                            <div style="display:flex;gap:8px">
+                                <button class="download" data-action="download-csv" data-url="{{ route('reports.faculty') }}">Download CSV</button>
+                                <button class="download" data-action="download-pdf" data-title="Faculty Report">Download PDF</button>
+                            </div>
                         </div>
-                        <div class="summary">Total faculty in report: 0</div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Faculty ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Position</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($reportFaculty as $f)
+                                        <tr>
+                                            <td>{{ $f->faculty_id }}</td>
+                                            <td>{{ $f->first_name }} {{ $f->middle_name }} {{ $f->last_name }}</td>
+                                            <td>{{ $f->email_address }}</td>
+                                            <td>{{ $f->position ?? 'N/A' }}</td>
+                                            <td>{{ optional($f->department)->department_name ?? 'N/A' }}</td>
+                                            <td>{{ $f->status ?? 'Active' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="6">No results</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="summary">Total faculty in report: {{ $reportFaculty->count() }}</div>
                     </div>
                 </div>
             </div>
@@ -414,6 +695,20 @@
                                 <div class="page-sub" style="margin:4px 0 0">Manage course information</div>
                             </div>
                             <button class="btn btn-dark" data-modal-open="course-add">+ Add Course</button>
+                        </div>
+                        <div class="filter-bar" style="margin:10px 0">
+                            <form data-filter-form method="GET" action="{{ route('dashboard') }}">
+                                <input type="hidden" name="view" value="system-settings" />
+                                <input type="hidden" name="tab" value="courses" />
+                                <div class="input-group" style="min-width:320px">
+                                    <span class="input-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+                                    <input type="search" name="q" value="{{ request('q') }}" placeholder="Search courses..." class="form-control" />
+                                </div>
+                                <select name="archived" class="form-select">
+                                    <option value="0" {{ request('archived','0')=='0' ? 'selected' : '' }}>Active</option>
+                                    <option value="1" {{ request('archived')=='1' ? 'selected' : '' }}>Archived</option>
+                                </select>
+                            </form>
                         </div>
                         <div class="table-responsive">
                             <table class="table">
@@ -459,6 +754,20 @@
                             </div>
                             <button class="btn btn-dark" data-modal-open="department-add">+ Add Department</button>
                         </div>
+                        <div class="filter-bar" style="margin:10px 0">
+                            <form data-filter-form method="GET" action="{{ route('dashboard') }}">
+                                <input type="hidden" name="view" value="system-settings" />
+                                <input type="hidden" name="tab" value="departments" />
+                                <div class="input-group" style="min-width:320px">
+                                    <span class="input-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+                                    <input type="search" name="q" value="{{ request('q') }}" placeholder="Search departments..." class="form-control" />
+                                </div>
+                                <select name="archived" class="form-select">
+                                    <option value="0" {{ request('archived','0')=='0' ? 'selected' : '' }}>Active</option>
+                                    <option value="1" {{ request('archived')=='1' ? 'selected' : '' }}>Archived</option>
+                                </select>
+                            </form>
+                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -500,6 +809,20 @@
                                 <div class="page-sub" style="margin:4px 0 0">Manage academic year information</div>
                             </div>
                             <button class="btn btn-dark" data-modal-open="year-add">+ Add Academic Year</button>
+                        </div>
+                        <div class="filter-bar" style="margin:10px 0">
+                            <form data-filter-form method="GET" action="{{ route('dashboard') }}">
+                                <input type="hidden" name="view" value="system-settings" />
+                                <input type="hidden" name="tab" value="academic-years" />
+                                <div class="input-group" style="min-width:320px">
+                                    <span class="input-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+                                    <input type="search" name="q" value="{{ request('q') }}" placeholder="Search academic years..." class="form-control" />
+                                </div>
+                                <select name="archived" class="form-select">
+                                    <option value="0" {{ request('archived','0')=='0' ? 'selected' : '' }}>Active</option>
+                                    <option value="1" {{ request('archived')=='1' ? 'selected' : '' }}>Archived</option>
+                                </select>
+                            </form>
                         </div>
                         <div class="table-responsive">
                             <table class="table">

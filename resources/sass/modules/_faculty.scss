@@ -3,7 +3,7 @@
   .filter-bar{display:flex;gap:10px;align-items:center}
   .filter-bar form{display:flex;gap:10px;align-items:center;flex-wrap:nowrap}
   .input-group{display:flex;align-items:center;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;flex:1;min-width:0}
-  .input-group-text{padding:8px 10px;background:transparent;border:0;color:#6b7280}
+  .input-ico{padding:8px 10px;background:transparent;border:0;color:#6b7280}
   .input-group .form-control{border:0;background:transparent}
   .input-group{min-width:360px}
   .form-select{min-width:200px}
@@ -17,4 +17,5 @@
   @media(max-width: 900px){
     .filter-bar form{flex-wrap:wrap}
   }
+  .table td .sub{font-size:12px;color:#9ca3af;margin-top:2px;line-height:1.2}
 }
