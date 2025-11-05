@@ -1,7 +1,8 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 
 const menuItems = [
-    { label: 'Dashboard', icon: 'dashboard', href: '/dashboard', active: true },
+    { label: 'Dashboard', icon: 'dashboard', href: '/dashboard', end: true },
     { label: 'Faculty', icon: 'users', href: '/faculty' },
     { label: 'Student', icon: 'student', href: '/student' },
     { label: 'Reporting', icon: 'chart', href: '/reporting' },
@@ -18,16 +19,19 @@ function SideBarMenu() {
 
             <nav className="sidebar__nav" aria-label="Primary">
                 {menuItems.map((item) => (
-                    <a
+                    <NavLink
                         key={item.label}
-                        href={item.href}
-                        className={`sidebar__nav-item${item.active ? ' sidebar__nav-item--active' : ''}`}
+                        to={item.href}
+                        end={item.end}
+                        className={({ isActive }) =>
+                            `sidebar__nav-item${isActive ? ' sidebar__nav-item--active' : ''}`
+                        }
                     >
                         <span className={`sidebar__icon sidebar__icon--${item.icon}`} aria-hidden="true">
                             {item.label.charAt(0).toUpperCase()}
                         </span>
                         <span className="sidebar__label">{item.label}</span>
-                    </a>
+                    </NavLink>
                 ))}
             </nav>
 
