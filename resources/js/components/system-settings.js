@@ -72,6 +72,7 @@ function SystemSettings() {
     const navigate = useNavigate();
     const [editingId, setEditingId] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
+    const [currentPage, setCurrentPage] = useState({ course: 1, department: 1, academicYear: 1 });
 
     const archiveEntityMap = {
         course: 'course',
@@ -269,6 +270,29 @@ function SystemSettings() {
         }));
     }, [activeTab, courses, departments, academicYears]);
 
+    const pageSize = 20;
+    const pageState = currentPage[activeTab] || 1;
+    const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize));
+    const paginatedRows = useMemo(() => {
+        const startIndex = (pageState - 1) * pageSize;
+        return currentRows.slice(startIndex, startIndex + pageSize);
+    }, [currentRows, pageState]);
+
+    useEffect(() => {
+        setCurrentPage((previous) => ({ ...previous, [activeTab]: 1 }));
+    }, [activeTab]);
+
+    useEffect(() => {
+        setCurrentPage((previous) => {
+            const current = previous[activeTab] || 1;
+            const bounded = Math.min(Math.max(1, current), totalPages);
+            if (bounded === current) {
+                return previous;
+            }
+            return { ...previous, [activeTab]: bounded };
+        });
+    }, [activeTab, totalPages]);
+
     const openEditModal = (type, record) => {
         if (!type || !record) return;
         const entityLabel = successEntityMap[type] || 'Item';
@@ -278,6 +302,7 @@ function SystemSettings() {
         setFormLoading(false);
         setSuccessEntity(entityLabel);
         setSuccessMessage('');
+        setCurrentPage((previous) => ({ ...previous, [type]: 1 }));
 
         if (type === 'course') {
             setCourseForm({
@@ -542,7 +567,7 @@ function SystemSettings() {
                         ) : currentRows.length === 0 ? (
                             <div className="settings-table__empty">No data available</div>
                         ) : (
-                            currentRows.map((row) => (
+                            paginatedRows.map((row) => (
                                 <div
                                     key={row.id}
                                     className="settings-table__row"
@@ -587,11 +612,35 @@ function SystemSettings() {
                 </section>
 
                 <footer className="settings-footer" aria-label="Pagination">
-                    <button type="button" className="settings-pagination" aria-label="Previous page">
+                    <button
+                        type="button"
+                        className="settings-pagination"
+                        aria-label="Previous page"
+                        onClick={() =>
+                            setCurrentPage((previous) => ({
+                                ...previous,
+                                [activeTab]: Math.max(1, pageState - 1),
+                            }))
+                        }
+                        disabled={pageState <= 1}
+                    >
                         <span aria-hidden="true">{icons.chevronLeft}</span>
                     </button>
-                    <span className="settings-page-indicator">1 / 10</span>
-                    <button type="button" className="settings-pagination" aria-label="Next page">
+                    <span className="settings-page-indicator">
+                        {pageState} / {totalPages}
+                    </span>
+                    <button
+                        type="button"
+                        className="settings-pagination"
+                        aria-label="Next page"
+                        onClick={() =>
+                            setCurrentPage((previous) => ({
+                                ...previous,
+                                [activeTab]: Math.min(totalPages, pageState + 1),
+                            }))
+                        }
+                        disabled={pageState >= totalPages}
+                    >
                         <span aria-hidden="true">{icons.chevronRight}</span>
                     </button>
                 </footer>

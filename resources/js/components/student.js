@@ -63,6 +63,7 @@ export function Student() {
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [editingStudentId, setEditingStudentId] = useState(null);
     const [listLoading, setListLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const navigate = useNavigate();
 
@@ -136,6 +137,8 @@ export function Student() {
     }, [departmentFilter, courseFilter, courses]);
 
     const filteredStudents = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+
         return students.filter((student) => {
             const matchesSearch = [
                 student.full_name,
@@ -145,7 +148,7 @@ export function Student() {
                 student.department?.name,
             ]
                 .filter(Boolean)
-                .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()));
+                .some((value) => value.toLowerCase().includes(normalizedSearch));
 
             const matchesDepartment =
                 departmentFilter === 'all' || String(student.department_id || '') === String(departmentFilter);
@@ -156,6 +159,15 @@ export function Student() {
             return matchesSearch && matchesDepartment && matchesCourse;
         });
     }, [students, searchTerm, departmentFilter, courseFilter]);
+
+    const totalPages = useMemo(() => {
+        return Math.max(1, Math.ceil(filteredStudents.length / 20));
+    }, [filteredStudents.length]);
+
+    const paginatedStudents = useMemo(() => {
+        const startIndex = (currentPage - 1) * 20;
+        return filteredStudents.slice(startIndex, startIndex + 20);
+    }, [filteredStudents, currentPage]);
 
     const openCreateForm = () => {
         setEditingStudentId(null);
@@ -169,6 +181,16 @@ export function Student() {
         fetchCourses();
         fetchAcademicYears();
     };
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, departmentFilter, courseFilter]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const handleEdit = (studentId) => {
         const existing = students.find((student) => student.student_id === studentId);
@@ -590,10 +612,10 @@ export function Student() {
                 <div className="settings-table__body">
                     {listLoading ? (
                         <div className="settings-table__empty">Loading...</div>
-                    ) : filteredStudents.length === 0 ? (
+                    ) : paginatedStudents.length === 0 ? (
                         <div className="settings-table__empty">No student found</div>
                     ) : (
-                        filteredStudents.map((student) => (
+                        paginatedStudents.map((student) => (
                             <div
                                 key={student.student_id}
                                 className="settings-table__row"
@@ -632,11 +654,25 @@ export function Student() {
             </section>
 
             <footer className="settings-footer" aria-label="Pagination">
-                <button type="button" className="settings-pagination" aria-label="Previous page">
+                <button
+                    type="button"
+                    className="settings-pagination"
+                    aria-label="Previous page"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage <= 1}
+                >
                     <FiChevronLeft size={16} />
                 </button>
-                <span className="settings-page-indicator">1 / 1</span>
-                <button type="button" className="settings-pagination" aria-label="Next page">
+                <span className="settings-page-indicator">
+                    {currentPage} / {totalPages}
+                </span>
+                <button
+                    type="button"
+                    className="settings-pagination"
+                    aria-label="Next page"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage >= totalPages}
+                >
                     <FiChevronRight size={16} />
                 </button>
             </footer>

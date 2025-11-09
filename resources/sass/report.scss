@@ -64,8 +64,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 20px;
-    justify-content: space-between;
+    gap: 16px;
+    justify-content: flex-start;
 }
 
 .report-toolbar__filters {
@@ -114,6 +114,7 @@
     display: inline-flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .report-btn {

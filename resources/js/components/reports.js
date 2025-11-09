@@ -7,6 +7,8 @@ import {
     FiFilter,
     FiRefreshCw,
 } from 'react-icons/fi';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import SideBarMenu from './sidebarmenu';
 import '../../sass/report.scss';
 
@@ -52,6 +54,7 @@ function Reports() {
     const [generatedRows, setGeneratedRows] = useState({ student: [], faculty: [] });
     const [isGenerated, setIsGenerated] = useState({ student: false, faculty: false });
     const [errorMessage, setErrorMessage] = useState('');
+    const [currentPage, setCurrentPage] = useState({ student: 1, faculty: 1 });
 
     const resetFilters = () => {
         setCourseFilter('all');
@@ -89,6 +92,7 @@ function Reports() {
             setIsGenerated((previous) => ({ ...previous, faculty: false }));
             setGeneratedRows((previous) => ({ ...previous, faculty: [] }));
         }
+        setCurrentPage((previous) => ({ ...previous, [activeTab]: 1 }));
         setErrorMessage('');
     }, [activeTab]);
 
@@ -96,6 +100,7 @@ function Reports() {
         if (activeTab === 'student') {
             setIsGenerated((previous) => ({ ...previous, student: false }));
             setGeneratedRows((previous) => ({ ...previous, student: [] }));
+            setCurrentPage((previous) => ({ ...previous, student: 1 }));
             setErrorMessage('');
         }
     }, [courseFilter, activeTab]);
@@ -104,6 +109,7 @@ function Reports() {
         if (activeTab === 'faculty') {
             setIsGenerated((previous) => ({ ...previous, faculty: false }));
             setGeneratedRows((previous) => ({ ...previous, faculty: [] }));
+            setCurrentPage((previous) => ({ ...previous, faculty: 1 }));
             setErrorMessage('');
         }
     }, [departmentFilter, activeTab]);
@@ -111,6 +117,10 @@ function Reports() {
     const displayedRows = isGenerated[activeTab] ? generatedRows[activeTab] : [];
 
     const currentColumns = TAB_CONFIG[activeTab].columns;
+
+    const pageState = currentPage[activeTab] || 1;
+    const totalPages = Math.max(1, Math.ceil(displayedRows.length / 20));
+    const paginatedRows = displayedRows.slice((pageState - 1) * 20, pageState * 20);
 
     const renderStatus = (value) => {
         if (!value) return '—';
@@ -126,30 +136,55 @@ function Reports() {
             return;
         }
 
-        const csvColumns = currentColumns.map((column) => column.label);
-        const csvRows = rows.map((row) =>
-            currentColumns
-                .map((column) => {
-                    const value = row[column.key];
-                    if (value == null) return '';
-                    if (typeof value === 'string') {
-                        return `"${value.replace(/"/g, '""')}"`;
-                    }
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+        const title = activeTab === 'student' ? 'Student Report' : 'Faculty Report';
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text(title, 40, 50);
+        doc.setFontSize(12);
+        doc.setFont('Helvetica', 'normal');
+        doc.text(`Generated on ${new Date().toLocaleString()}`, 40, 70);
+
+        const head = [currentColumns.map((column) => column.label)];
+        const body = rows.map((row) =>
+            currentColumns.map((column) => {
+                const value = row[column.key];
+                if (value == null) {
+                    return '';
+                }
+                if (typeof value === 'string') {
                     return value;
-                })
-                .join(','),
+                }
+                if (typeof value === 'number') {
+                    return value.toString();
+                }
+                return String(value ?? '');
+            }),
         );
 
-        const csvContent = [csvColumns.join(','), ...csvRows].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${activeTab}-report.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        autoTable(doc, {
+            head,
+            body,
+            startY: 90,
+            styles: {
+                font: 'Helvetica',
+                fontSize: 11,
+                cellPadding: 8,
+                textColor: '#382c74',
+            },
+            headStyles: {
+                fillColor: [123, 100, 255],
+                textColor: '#ffffff',
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [245, 239, 255],
+            },
+            margin: { left: 40, right: 40 },
+        });
+
+        doc.save(`${activeTab}-report.pdf`);
     };
 
     const handleGenerateReport = async () => {
@@ -180,6 +215,7 @@ function Reports() {
             const rows = Array.isArray(data.data) ? data.data : [];
             setGeneratedRows((previous) => ({ ...previous, [activeTab]: rows }));
             setIsGenerated((previous) => ({ ...previous, [activeTab]: true }));
+            setCurrentPage((previous) => ({ ...previous, [activeTab]: 1 }));
         } catch (error) {
             console.error('Error generating report:', error);
             setGeneratedRows((previous) => ({ ...previous, [activeTab]: [] }));
@@ -298,10 +334,10 @@ function Reports() {
                             <div className="report-table__empty">{errorMessage}</div>
                         ) : !isGenerated[activeTab] ? (
                             <div className="report-table__empty">Select filters and click Generate Report.</div>
-                        ) : displayedRows.length === 0 ? (
+                        ) : paginatedRows.length === 0 ? (
                             <div className="report-table__empty">No records found for the selected filters.</div>
                         ) : (
-                            displayedRows.map((row) => (
+                            paginatedRows.map((row) => (
                                 <div
                                     key={row.id}
                                     className="report-table__row"
@@ -321,11 +357,35 @@ function Reports() {
                 </section>
 
                 <footer className="report-footer" aria-label="Pagination">
-                    <button type="button" className="report-pagination" aria-label="Previous page">
+                    <button
+                        type="button"
+                        className="report-pagination"
+                        aria-label="Previous page"
+                        onClick={() =>
+                            setCurrentPage((previous) => ({
+                                ...previous,
+                                [activeTab]: Math.max(1, pageState - 1),
+                            }))
+                        }
+                        disabled={pageState <= 1}
+                    >
                         <FiChevronLeft size={16} />
                     </button>
-                    <span className="report-page-indicator">1 / 1</span>
-                    <button type="button" className="report-pagination" aria-label="Next page">
+                    <span className="report-page-indicator">
+                        {pageState} / {totalPages}
+                    </span>
+                    <button
+                        type="button"
+                        className="report-pagination"
+                        aria-label="Next page"
+                        onClick={() =>
+                            setCurrentPage((previous) => ({
+                                ...previous,
+                                [activeTab]: Math.min(totalPages, pageState + 1),
+                            }))
+                        }
+                        disabled={pageState >= totalPages}
+                    >
                         <FiChevronRight size={16} />
                     </button>
                 </footer>

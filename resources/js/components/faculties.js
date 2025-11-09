@@ -50,6 +50,7 @@ export function Faculties() {
     const [successMessage, setSuccessMessage] = useState('');
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [editingFacultyId, setEditingFacultyId] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const navigate = useNavigate();
 
@@ -84,6 +85,8 @@ export function Faculties() {
     const isEditing = editingFacultyId !== null;
 
     const filteredFaculties = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+
         return faculties.filter((faculty) => {
             const matchesSearch = [
                 faculty.full_name,
@@ -93,7 +96,7 @@ export function Faculties() {
                 faculty.department?.name,
             ]
                 .filter(Boolean)
-                .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()));
+                .some((value) => value.toLowerCase().includes(normalizedSearch));
 
             const matchesDepartment =
                 departmentFilter === 'all' ||
@@ -102,6 +105,13 @@ export function Faculties() {
             return matchesSearch && matchesDepartment;
         });
     }, [faculties, searchTerm, departmentFilter]);
+
+    const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredFaculties.length / 20)), [filteredFaculties.length]);
+
+    const paginatedFaculties = useMemo(() => {
+        const startIndex = (currentPage - 1) * 20;
+        return filteredFaculties.slice(startIndex, startIndex + 20);
+    }, [filteredFaculties, currentPage]);
 
     const openCreateForm = () => {
         setEditingFacultyId(null);
@@ -113,6 +123,16 @@ export function Faculties() {
         setSuccessMessage('');
         fetchDepartments();
     };
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, departmentFilter]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const handleEdit = (facultyId) => {
         const existing = faculties.find((faculty) => faculty.faculty_id === facultyId);
@@ -496,10 +516,10 @@ export function Faculties() {
                 <div className="settings-table__body">
                     {loading ? (
                         <div className="settings-table__empty">Loading...</div>
-                    ) : filteredFaculties.length === 0 ? (
+                    ) : paginatedFaculties.length === 0 ? (
                         <div className="settings-table__empty">No faculty found</div>
                     ) : (
-                        filteredFaculties.map((faculty) => (
+                        paginatedFaculties.map((faculty) => (
                             <div
                                 key={faculty.faculty_id}
                                 className="settings-table__row"
@@ -538,11 +558,25 @@ export function Faculties() {
             </section>
 
             <footer className="settings-footer" aria-label="Pagination">
-                <button type="button" className="settings-pagination" aria-label="Previous page">
+                <button
+                    type="button"
+                    className="settings-pagination"
+                    aria-label="Previous page"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage <= 1}
+                >
                     <FiChevronLeft size={16} />
                 </button>
-                <span className="settings-page-indicator">1 / 1</span>
-                <button type="button" className="settings-pagination" aria-label="Next page">
+                <span className="settings-page-indicator">
+                    {currentPage} / {totalPages}
+                </span>
+                <button
+                    type="button"
+                    className="settings-pagination"
+                    aria-label="Next page"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage >= totalPages}
+                >
                     <FiChevronRight size={16} />
                 </button>
             </footer>
