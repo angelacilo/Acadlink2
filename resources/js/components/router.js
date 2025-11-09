@@ -9,6 +9,11 @@ import {
 import Login from './login';
 import Dashboard from './dashboard';
 import SystemSettings from './system-settings';
+import { Faculties } from './faculties';
+import Student from './student';
+import Archived from './archived';
+import Reports from './reports';
+import Profile from './profile';
 
 function AppRoutes() {
     return (
@@ -20,6 +25,11 @@ function AppRoutes() {
                 {/* protected area */}
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/settings" element={<SystemSettings />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/faculty" element={<Faculties />} />
+                <Route path="/student" element={<Student />} />
+                <Route path="/archive" element={<Archived />} />
+                <Route path="/reporting" element={<Reports />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </RouterRoutes>

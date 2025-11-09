@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -41,4 +43,34 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+}
+
+class Admin extends Model
+{
+    use HasFactory;
+
+    protected $table = 'admins';
+    protected $primaryKey = 'admin_id';
+
+    protected $fillable = [
+        'username',
+        'email',
+        'password',
+    ];
+
+    protected $hidden = [
+        'password',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    public function setPasswordAttribute($value)
+    {
+        if (!empty($value)) {
+            $this->attributes['password'] = Hash::make($value);
+        }
+    }
 }

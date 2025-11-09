@@ -18,10 +18,10 @@ class AdminSeeder extends Seeder
     {
         // make seeding idempotent: insert or update existing admin by username
         DB::table('admins')->updateOrInsert(
-            ['username' => 'angel'],
+            ['username' => 'admin'],
             [
-                'email' => 'angel@gmail.com',
-                'password' => Hash::make('angel1'),
+                'email' => 'admin@urusa.edu.ph',
+                'password' => Hash::make('admin1'),
                 'updated_at' => Carbon::now(),
                 'created_at' => Carbon::now(),
             ]
