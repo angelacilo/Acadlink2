@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import {
     FiChevronLeft,
     FiChevronRight,
@@ -61,14 +62,12 @@ function Reports() {
         const loadFilters = async () => {
             try {
                 const [courseRes, departmentRes] = await Promise.all([
-                    fetch('/api/courses'),
-                    fetch('/api/departments'),
+                    axios.get('/api/courses'),
+                    axios.get('/api/departments'),
                 ]);
 
-                const [courseData, departmentData] = await Promise.all([
-                    courseRes.json(),
-                    departmentRes.json(),
-                ]);
+                const courseData = Array.isArray(courseRes.data?.data) ? courseRes.data.data : courseRes.data;
+                const departmentData = Array.isArray(departmentRes.data?.data) ? departmentRes.data.data : departmentRes.data;
 
                 setCourses(Array.isArray(courseData) ? courseData : []);
                 setDepartments(Array.isArray(departmentData) ? departmentData : []);
@@ -161,21 +160,20 @@ function Reports() {
 
         try {
             const endpoint = activeTab === 'student' ? '/api/reports/students' : '/api/reports/faculties';
-            const params = new URLSearchParams();
+            const params = {};
 
             if (activeTab === 'student' && courseFilter !== 'all') {
-                params.set('course_id', courseFilter);
+                params.course_id = courseFilter;
             }
 
             if (activeTab === 'faculty' && departmentFilter !== 'all') {
-                params.set('department_id', departmentFilter);
+                params.department_id = departmentFilter;
             }
 
-            const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
-            const response = await fetch(url);
-            const data = await response.json();
+            const response = await axios.get(endpoint, { params });
+            const data = response.data || {};
 
-            if (!response.ok) {
+            if (!(response.status >= 200 && response.status < 300)) {
                 throw new Error(data.message || 'Unable to generate report.');
             }
 

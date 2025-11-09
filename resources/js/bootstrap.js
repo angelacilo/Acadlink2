@@ -13,6 +13,7 @@ try {
 window.axios = require('axios');
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.headers.common.Accept = 'application/json';
 // Set the CSRF token as a common header for Laravel
 const tokenMeta = document.head.querySelector('meta[name="csrf-token"]');
 if (tokenMeta) {
@@ -20,6 +21,18 @@ if (tokenMeta) {
 }
 // Send credentials (cookies) with requests - useful if using Sanctum/session auth
 window.axios.defaults.withCredentials = true;
+
+window.axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error?.response?.status;
+        if (status === 401 || status === 419) {
+            window.location.href = '/';
+            return;
+        }
+        return Promise.reject(error);
+    },
+);
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening

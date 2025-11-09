@@ -1,156 +1,118 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { LuGraduationCap } from 'react-icons/lu';
+import '../../sass/login.scss';
 
 function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
 
-    async function onSubmit(e) {
-        e.preventDefault();
+    async function onSubmit(event) {
+        event.preventDefault();
+        setSubmitting(true);
+        setError('');
         try {
-            // Attempt login - adjust field names if your backend expects 'email' instead of 'username'
             const payload = { username, password };
-            const res = await axios.post('/login', payload);
-            // on success, redirect to dashboard (server route)
+            await axios.post('/api/auth/login', payload);
             window.location.href = '/dashboard';
         } catch (err) {
             console.error('Login error', err);
-            // show validation/server message if available
-            const msg = err.response && err.response.data && err.response.data.message
-                ? err.response.data.message
-                : 'Login failed. Please check credentials.';
-            alert(msg);
+            if (err.response?.data?.errors) {
+                const messages = Object.values(err.response.data.errors)
+                    .flat()
+                    .join(' ');
+                setError(messages || 'Login failed. Please check credentials.');
+            } else if (err.response?.data?.message) {
+                setError(err.response.data.message);
+            } else {
+                setError('Login failed. Please check credentials.');
+            }
+        } finally {
+            setSubmitting(false);
         }
     }
 
     return (
-        <div style={styles.page}>
-            <div style={styles.card}>
-                <h3 style={styles.title}>AcadLink</h3>
-                <p style={styles.subtitle}>Father Saturnino Urios University</p>
+        <div className="login-page">
+            <header className="login-page__header" aria-hidden="true">
+            
+            </header>
+            <div className="login-page__content">
+                <div className="login-page__logo" aria-hidden="true">
+                    <LuGraduationCap size={56} color="#3e1c83" />
+                </div>
+                <h1 className="login-page__brand">AcadLink</h1>
+                <p className="login-page__tagline">Father Saturnino Urios University</p>
 
-                <form onSubmit={onSubmit} style={styles.form}>
-                    <label style={styles.label}>Username</label>
-                    <input
-                        style={styles.input}
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="username"
-                        required
-                    />
+                <form onSubmit={onSubmit} className="login-form">
+                    {error ? (
+                        <div className="login-form__error" role="alert">
+                            {error}
+                        </div>
+                    ) : null}
 
-                    <label style={styles.label}>Password</label>
-                    <div style={styles.passwordWrap}>
+                    <label htmlFor="username" className="sr-only">
+                        Username
+                    </label>
+                    <div className="login-input">
+                        <FiMail className="login-input__icon" aria-hidden="true" />
                         <input
-                            style={{ ...styles.input, paddingRight: 40 }}
+                            id="username"
+                            className="login-input__field"
+                            type="text"
+                            value={username}
+                            onChange={(event) => setUsername(event.target.value)}
+                            placeholder="username"
+                            required
+                        />
+                    </div>
+
+                    <label htmlFor="password" className="sr-only">
+                        Password
+                    </label>
+                    <div className="login-input">
+                        <FiLock className="login-input__icon" aria-hidden="true" />
+                        <input
+                            id="password"
+                            className="login-input__field"
                             type={showPassword ? 'text' : 'password'}
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(event) => setPassword(event.target.value)}
                             placeholder="password"
                             required
                         />
                         <button
                             type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            style={styles.eyeBtn}
-                            aria-label="Toggle password visibility"
+                            onClick={() => setShowPassword((previous) => !previous)}
+                            className="login-input__toggle"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
-                            {showPassword ? '🙈' : '👁️'}
+                            {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                         </button>
                     </div>
 
-                    <button type="submit" style={styles.submit}>Log In</button>
+                    <button type="submit" className="login-form__submit" disabled={submitting}>
+                        {submitting ? 'Logging in...' : 'Log In'}
+                    </button>
                 </form>
 
-                <div style={styles.footer}>© AcadLink - Student Management Portal</div>
+                <p className="login-page__helper">
+                    Don&apos;t have an account?{' '}
+                    <a href="#" className="login-page__helper-link">
+                        Create Account
+                    </a>
+                </p>
             </div>
+
+            <footer className="login-page__footer">
+                © {new Date().getFullYear()} AcadLink - Father Saturnino Urios University Academic Management Portal
+            </footer>
         </div>
     );
-};
-
-const styles = {
-    page: {
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#3b1760',
-        padding: 20,
-    },
-    card: {
-        width: 720,
-        maxWidth: '95%',
-        background: '#dcc7ff',
-        padding: '48px 56px',
-        borderRadius: 4,
-        boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
-        textAlign: 'center',
-    },
-    title: {
-        margin: 0,
-        color: '#31124a',
-        fontSize: 28,
-        fontWeight: 700,
-    },
-    subtitle: {
-        marginTop: 6,
-        marginBottom: 18,
-        color: '#5b3a73',
-        fontSize: 12,
-    },
-    form: {
-        marginTop: 12,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'stretch',
-    },
-    label: {
-        textAlign: 'left',
-        fontSize: 12,
-        color: '#4b2f66',
-        margin: '10px 0 6px',
-    },
-    input: {
-        height: 36,
-        padding: '6px 10px',
-        borderRadius: 4,
-        border: '1px solid rgba(0,0,0,0.12)',
-        outline: 'none',
-        fontSize: 14,
-    },
-    passwordWrap: {
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-    },
-    eyeBtn: {
-        position: 'absolute',
-        right: 6,
-        top: 6,
-        height: 24,
-        width: 32,
-        border: 'none',
-        background: 'transparent',
-        cursor: 'pointer',
-        fontSize: 14,
-    },
-    submit: {
-        marginTop: 18,
-        height: 36,
-        borderRadius: 18,
-        border: 'none',
-        background: '#3a1b56',
-        color: '#fff',
-        fontWeight: 600,
-        cursor: 'pointer',
-    },
-    footer: {
-        marginTop: 18,
-        color: '#6b4e88',
-        fontSize: 11,
-    },
-};
+}
 
 export default Login;

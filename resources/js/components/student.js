@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import {
     FiSearch,
     FiPlus,
@@ -70,8 +71,10 @@ export function Student() {
     const fetchStudents = async () => {
         setListLoading(true);
         try {
-            const response = await fetch('/api/students?archived=0');
-            const data = await response.json();
+            const response = await axios.get('/api/students', {
+                params: { archived: 0 },
+            });
+            const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
             setStudents(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error loading students:', error);
@@ -82,8 +85,8 @@ export function Student() {
 
     const fetchDepartments = async () => {
         try {
-            const response = await fetch('/api/departments');
-            const data = await response.json();
+            const response = await axios.get('/api/departments');
+            const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
             setDepartments(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error loading departments:', error);
@@ -92,8 +95,8 @@ export function Student() {
 
     const fetchCourses = async () => {
         try {
-            const response = await fetch('/api/courses');
-            const data = await response.json();
+            const response = await axios.get('/api/courses');
+            const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
             setCourses(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error loading courses:', error);
@@ -102,8 +105,8 @@ export function Student() {
 
     const fetchAcademicYears = async () => {
         try {
-            const response = await fetch('/api/academic-years');
-            const data = await response.json();
+            const response = await axios.get('/api/academic-years');
+            const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
             setAcademicYears(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error loading academic years:', error);
@@ -241,19 +244,15 @@ export function Student() {
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
-            const response = await fetch(endpoint, {
+            const response = await axios({
+                url: endpoint,
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(payload),
+                data: payload,
             });
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 setForm(defaultFormState);
                 setShowForm(false);
                 setEditingStudentId(null);
@@ -285,17 +284,11 @@ export function Student() {
         if (!confirmArchive) return;
 
         try {
-            const response = await fetch(`/api/students/${studentId}/archive`, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
+            const response = await axios.post(`/api/students/${studentId}/archive`);
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 fetchStudents();
                 setSuccessMessage('Student archived.');
                 setSuccessModalOpen(true);

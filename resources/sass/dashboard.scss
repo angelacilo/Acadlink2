@@ -86,38 +86,51 @@
 }
 
 .sidebar__footer {
-    margin-top: 40px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(123, 100, 255, 0.24);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.sidebar__avatar {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
-    background: #d9cbff;
-    color: #2d1b56;
-    display: grid;
-    place-items: center;
-    font-weight: 700;
+    margin-top: auto;
+    padding-top: 28px;
+    border-top: 1px solid rgba(123, 100, 255, 0.22);
 }
 
 .sidebar__user {
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+    padding: 6px 0;
+    font-size: 13px;
     line-height: 1.4;
+    transition: color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+        color: #4c2fa3;
+    }
+}
+
+.sidebar__avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(61, 37, 141, 0.28);
+    background: #ece2ff;
+    color: #3d258d;
+    display: grid;
+    place-items: center;
 }
 
 .sidebar__user-name {
     margin: 0;
+    font-size: 14px;
     font-weight: 600;
+    color: #25114d;
 }
 
 .sidebar__user-email {
-    margin: 0;
-    opacity: 0.7;
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: rgba(37, 17, 77, 0.7);
 }
 
 .dashboard-content {

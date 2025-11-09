@@ -9,6 +9,7 @@ use App\Http\Controllers\Facultyprofile;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Studentprofile;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Auth\AdminAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,78 +26,37 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/login', function (Request $request) {
-    $request->validate([
-        'username' => 'required|string',
-        'password' => 'required|string',
-    ]);
-
-    // TODO: replace with real authentication.
-    // For now, we simulate a successful login for any credentials.
-    return response()->json(['message' => 'Login successful'], 200);
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('guest:admin');
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin');
+    Route::get('/me', [AdminAuthController::class, 'me'])->middleware('auth:admin');
 });
 
-// Courses API
-Route::prefix('courses')->group(function () {
-    Route::get('/', [CourseController::class, 'index']);
-    Route::post('/', [CourseController::class, 'store']);
-    Route::get('/{id}', [CourseController::class, 'show']);
-    Route::put('/{id}', [CourseController::class, 'update']);
-    Route::post('/{id}/archive', [CourseController::class, 'archive']);
-    Route::post('/{id}/restore', [CourseController::class, 'restore']);
-    Route::delete('/{id}', [CourseController::class, 'destroy']);
-});
+Route::middleware('auth:admin')->group(function () {
+    Route::apiResource('courses', CourseController::class)->parameters(['courses' => 'id']);
+    Route::post('courses/{id}/archive', [CourseController::class, 'archive']);
+    Route::post('courses/{id}/restore', [CourseController::class, 'restore']);
 
-// Departments API
-Route::prefix('departments')->group(function () {
-    Route::get('/', [DepartmentController::class, 'index']);
-    Route::post('/', [DepartmentController::class, 'store']);
-    Route::get('/{id}', [DepartmentController::class, 'show']);
-    Route::put('/{id}', [DepartmentController::class, 'update']);
-    Route::post('/{id}/archive', [DepartmentController::class, 'archive']);
-    Route::post('/{id}/restore', [DepartmentController::class, 'restore']);
-    Route::delete('/{id}', [DepartmentController::class, 'destroy']);
-});
+    Route::apiResource('departments', DepartmentController::class)->parameters(['departments' => 'id']);
+    Route::post('departments/{id}/archive', [DepartmentController::class, 'archive']);
+    Route::post('departments/{id}/restore', [DepartmentController::class, 'restore']);
 
-// Academic Years API
-Route::prefix('academic-years')->group(function () {
-    Route::get('/', [AcademicYearController::class, 'index']);
-    Route::post('/', [AcademicYearController::class, 'store']);
-    Route::get('/{id}', [AcademicYearController::class, 'show']);
-    Route::put('/{id}', [AcademicYearController::class, 'update']);
-    Route::post('/{id}/archive', [AcademicYearController::class, 'archive']);
-    Route::post('/{id}/restore', [AcademicYearController::class, 'restore']);
-    Route::delete('/{id}', [AcademicYearController::class, 'destroy']);
-});
+    Route::apiResource('academic-years', AcademicYearController::class)->parameters(['academic-years' => 'id']);
+    Route::post('academic-years/{id}/archive', [AcademicYearController::class, 'archive']);
+    Route::post('academic-years/{id}/restore', [AcademicYearController::class, 'restore']);
 
-// Faculty API
-Route::prefix('faculties')->group(function () {
-    Route::get('/', [Facultyprofile::class, 'index']);
-    Route::post('/', [Facultyprofile::class, 'store']);
-    Route::put('/{id}', [Facultyprofile::class, 'update']);
-    Route::post('/{id}/archive', [Facultyprofile::class, 'archive']);
-    Route::post('/{id}/restore', [Facultyprofile::class, 'restore']);
-    Route::delete('/{id}', [Facultyprofile::class, 'destroy']);
-});
+    Route::apiResource('faculties', Facultyprofile::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['faculties' => 'id']);
+    Route::post('faculties/{id}/archive', [Facultyprofile::class, 'archive']);
+    Route::post('faculties/{id}/restore', [Facultyprofile::class, 'restore']);
 
-// Students API
-Route::prefix('students')->group(function () {
-    Route::get('/', [Studentprofile::class, 'index']);
-    Route::post('/', [Studentprofile::class, 'store']);
-    Route::put('/{id}', [Studentprofile::class, 'update']);
-    Route::post('/{id}/archive', [Studentprofile::class, 'archive']);
-    Route::post('/{id}/restore', [Studentprofile::class, 'restore']);
-    Route::delete('/{id}', [Studentprofile::class, 'destroy']);
-});
+    Route::apiResource('students', Studentprofile::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['students' => 'id']);
+    Route::post('students/{id}/archive', [Studentprofile::class, 'archive']);
+    Route::post('students/{id}/restore', [Studentprofile::class, 'restore']);
 
-// Admins API
-Route::prefix('admins')->group(function () {
-    Route::get('/{id}', [AdminController::class, 'show']);
-    Route::put('/{id}', [AdminController::class, 'update']);
-});
+    Route::apiResource('admins', AdminController::class)->only(['show', 'update'])->parameters(['admins' => 'id']);
 
-// Reports API
-Route::prefix('reports')->group(function () {
-    Route::get('/students', [ReportController::class, 'students']);
-    Route::get('/faculties', [ReportController::class, 'faculties']);
+    Route::prefix('reports')->group(function () {
+        Route::get('/students', [ReportController::class, 'students']);
+        Route::get('/faculties', [ReportController::class, 'faculties']);
+    });
 });

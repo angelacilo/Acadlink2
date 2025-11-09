@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { FiArchive, FiCheck, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import SideBarMenu from './sidebarmenu';
@@ -82,16 +83,14 @@ function SystemSettings() {
         setListLoading(true);
         try {
             const [courseRes, deptRes, ayRes] = await Promise.all([
-                fetch('/api/courses'),
-                fetch('/api/departments'),
-                fetch('/api/academic-years'),
+                axios.get('/api/courses'),
+                axios.get('/api/departments'),
+                axios.get('/api/academic-years'),
             ]);
 
-            const [courseData, deptData, ayData] = await Promise.all([
-                courseRes.json(),
-                deptRes.json(),
-                ayRes.json(),
-            ]);
+            const courseData = Array.isArray(courseRes.data?.data) ? courseRes.data.data : courseRes.data;
+            const deptData = Array.isArray(deptRes.data?.data) ? deptRes.data.data : deptRes.data;
+            const ayData = Array.isArray(ayRes.data?.data) ? ayRes.data.data : ayRes.data;
 
             setCourses(Array.isArray(courseData) ? courseData : []);
             setDepartments(Array.isArray(deptData) ? deptData : []);
@@ -162,16 +161,10 @@ function SystemSettings() {
 
             if (!endpoint) return;
 
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
-            const data = await response.json();
+            const response = await axios.post(endpoint);
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 const entityLabel = successEntityMap[activeTab] || 'Item';
                 setSuccessEntity(entityLabel);
                 setSuccessMessage(`${entityLabel} archived.`);
@@ -219,19 +212,15 @@ function SystemSettings() {
         setFormError('');
 
         try {
-            const response = await fetch(url, {
+            const response = await axios({
+                url,
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(payload),
+                data: payload,
             });
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 const actionLabel = isEdit ? 'updated' : 'added';
                 setSuccessEntity(entity);
                 setSuccessMessage(`${entity} ${actionLabel}.`);

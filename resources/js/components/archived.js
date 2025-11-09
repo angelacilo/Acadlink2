@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { FiArrowLeft, FiFilter, FiCheck, FiX, FiSearch } from 'react-icons/fi';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import '../../sass/settings.scss';
@@ -149,11 +150,12 @@ function Archived() {
         const loadLookups = async () => {
             try {
                 const [deptRes, courseRes] = await Promise.all([
-                    fetch('/api/departments'),
-                    fetch('/api/courses'),
+                    axios.get('/api/departments'),
+                    axios.get('/api/courses'),
                 ]);
 
-                const [deptData, courseData] = await Promise.all([deptRes.json(), courseRes.json()]);
+                const deptData = Array.isArray(deptRes.data?.data) ? deptRes.data.data : deptRes.data;
+                const courseData = Array.isArray(courseRes.data?.data) ? courseRes.data.data : courseRes.data;
                 setDepartments(Array.isArray(deptData) ? deptData : []);
                 setCourses(Array.isArray(courseData) ? courseData : []);
             } catch (error) {
@@ -178,8 +180,10 @@ function Archived() {
             setSearchTerm('');
 
             try {
-                const response = await fetch(`${config.endpoint}?archived=1`);
-                const data = await response.json();
+                const response = await axios.get(config.endpoint, {
+                    params: { archived: 1 },
+                });
+                const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
                 setRecords(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error(`Error loading archived ${config.label.toLowerCase()}s:`, error);
@@ -251,9 +255,12 @@ function Archived() {
         const config = entityConfig[activeEntity];
         if (!config) return;
         setLoading(true);
-        fetch(`${config.endpoint}?archived=1`)
-            .then((response) => response.json())
-            .then((data) => setRecords(Array.isArray(data) ? data : []))
+        axios
+            .get(config.endpoint, { params: { archived: 1 } })
+            .then((response) => {
+                const data = Array.isArray(response.data?.data) ? response.data.data : response.data;
+                setRecords(Array.isArray(data) ? data : []);
+            })
             .catch((error) => {
                 console.error(`Error refreshing archived ${config.label.toLowerCase()}s:`, error);
                 setRecords([]);
@@ -268,17 +275,11 @@ function Archived() {
         if (!config || !recordId) return;
 
         try {
-            const response = await fetch(`${config.endpoint}/${recordId}/restore`, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
+            const response = await axios.post(`${config.endpoint}/${recordId}/restore`);
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 setSuccessMessage(`${config.label} restored.`);
                 setSuccessModalOpen(true);
                 refreshRecords();
@@ -298,17 +299,11 @@ function Archived() {
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`${config.endpoint}/${recordId}`, {
-                method: 'DELETE',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
+            const response = await axios.delete(`${config.endpoint}/${recordId}`);
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 setSuccessMessage(`${config.label} deleted permanently.`);
                 setSuccessModalOpen(true);
                 refreshRecords();

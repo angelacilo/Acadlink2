@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { FiSearch, FiPlus, FiArchive, FiChevronLeft, FiChevronRight, FiCheck, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import SideBarMenu from './sidebarmenu';
@@ -55,8 +56,8 @@ export function Faculties() {
     const fetchFaculties = async () => {
         setLoading(true);
         try {
-            const facultyRes = await fetch('/api/faculties');
-            const facultyData = await facultyRes.json();
+            const response = await axios.get('/api/faculties');
+            const facultyData = Array.isArray(response.data?.data) ? response.data.data : response.data;
             setFaculties(Array.isArray(facultyData) ? facultyData : []);
         } catch (error) {
             console.error('Error loading faculties:', error);
@@ -67,8 +68,8 @@ export function Faculties() {
 
     const fetchDepartments = async () => {
         try {
-            const departmentRes = await fetch('/api/departments');
-            const departmentData = await departmentRes.json();
+            const response = await axios.get('/api/departments');
+            const departmentData = Array.isArray(response.data?.data) ? response.data.data : response.data;
             setDepartments(Array.isArray(departmentData) ? departmentData : []);
         } catch (error) {
             console.error('Error loading departments:', error);
@@ -178,19 +179,15 @@ export function Faculties() {
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
-            const response = await fetch(endpoint, {
+            const response = await axios({
+                url: endpoint,
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(payload),
+                data: payload,
             });
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 setForm(defaultFormState);
                 setShowForm(false);
                 setEditingFacultyId(null);
@@ -220,17 +217,11 @@ export function Faculties() {
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`/api/faculties/${id}/archive`, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
+            const response = await axios.post(`/api/faculties/${id}/archive`);
 
-            const data = await response.json();
+            const data = response.data || {};
 
-            if (response.ok && data.success) {
+            if ((response.status >= 200 && response.status < 300) && data.success) {
                 fetchFaculties();
             }
         } catch (error) {

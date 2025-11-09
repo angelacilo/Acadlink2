@@ -120,6 +120,14 @@ function Profile() {
             if (response.data?.success) {
                 setSuccessMessage('Profile updated successfully.');
                 setSuccessModalOpen(true);
+                window.dispatchEvent(
+                    new CustomEvent('adminProfileUpdated', {
+                        detail: {
+                            username: response.data?.data?.username || form.username,
+                            email: response.data?.data?.email || form.email,
+                        },
+                    }),
+                );
                 setEditing(false);
                 await fetchProfile();
             } else {
@@ -174,8 +182,14 @@ function Profile() {
         );
     };
 
-    const handleLogout = () => {
-        window.location.href = '/logout';
+    const handleLogout = async () => {
+        try {
+            await axios.post('/api/auth/logout');
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            window.location.href = '/';
+        }
     };
 
     return (
